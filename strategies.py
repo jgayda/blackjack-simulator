@@ -1,5 +1,13 @@
+class Strategy:
+    def __init__(self):
+        self.name = "strat"
+
+class NoStrategy(Strategy):
+    def __init__(self):
+        self.name = "hehe"
+
 # See https://www.blackjackapprenticeship.com/wp-content/uploads/2018/08/BJA_Basic_Strategy.jpg for charts
-class BasicStrategy:
+class BasicStrategy(Strategy):
     # Contains the optimal pair splitting strategy given the rank of the player's pair and the
     # dealer's upcard according to Basic Strategy principles. 
         #     2      3      4      5      6      7      8      9      10      A
@@ -59,7 +67,7 @@ class BasicStrategy:
         return self.pairSplitting.get(pairValue)[dealerUpcard - 2]
 
     
-    def __init__(self, doubleAfterSplitOffered: boolean):
+    def __init__(self, doubleAfterSplitOffered):
         self.doubleAfterSplitOffered = doubleAfterSplitOffered
         if doubleAfterSplitOffered:
             self.DASdeviations()
