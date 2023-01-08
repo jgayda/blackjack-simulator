@@ -26,8 +26,14 @@ class Shoe:
             self.discard.append(card)
     
     def getDecksRemaining(self):
-        decksDiscarded = self.discard % 52
+        decksDiscarded = len(self.discard) % 52
         return self.numDecks - decksDiscarded
+    
+    def getPenetration(self):
+        print("Discard pile: ", len(self.discard))
+        print("Draw Pile: ", len(self.drawPile))
+        print("Deck penetration: ", len(self.discard) / (self.numDecks * 52))
+        return len(self.discard) / (self.numDecks * 52)
 
     def printDeck(self):
         for card in self.drawPile:

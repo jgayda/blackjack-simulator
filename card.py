@@ -1,3 +1,19 @@
+from enum import Enum
+class CardValue(Enum):
+    Ace = 1
+    Two = 2
+    Three = 3
+    Four = 4
+    Five = 5
+    Six = 6
+    Seven = 7
+    Eight = 8
+    Nine = 9
+    Ten = 10
+    Jack = 11
+    Queen = 12
+    King = 13
+
 class Suit:
     Clubs = u"\N{BLACK CLUB SUIT}"
     Diamonds = u"\N{WHITE DIAMOND SUIT}"
@@ -6,22 +22,15 @@ class Suit:
 
 class Card:
 
-    def __init__(self, rank, suit):
+    def __init__(self, rank: int, suit):
         assert suit in (Suit.Clubs, Suit.Diamonds, Suit.Hearts, Suit.Spades)
         assert 1 <= rank < 14
         self.rank = rank
         self.suit = suit
     
-    @property
     def getValue(self):
-        return self.rank
-
-    @property
-    def hardValue(self):
-        return self.rank
-
-    @property
-    def softValue(self):
+        if self.rank > 10: 
+            return 10
         return self.rank
     
     def printCard(self):

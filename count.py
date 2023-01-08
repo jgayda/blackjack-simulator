@@ -5,10 +5,10 @@ class HiLoCount:
         self.runningCount = 0
         self.trueCount = 0
     
-    def updateRunningCount(self, card: Card):
-        if 2 <= card.getValue() <= 6:
+    def updateRunningCount(self, cardValue: int):
+        if 2 <= cardValue <= 6:
             self.runningCount = self.runningCount + 1
-        elif (10 <= card.getValue() <= 13 | card.getValue() == 1):
+        elif (10 <= cardValue <= 13 or cardValue == 1):
             self.runningCount = self.runningCount - 1
     
     def resetCount(self):

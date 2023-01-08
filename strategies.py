@@ -1,10 +1,15 @@
+from hand import Hand
 class Strategy:
     def __init__(self):
         self.name = "strat"
 
-class NoStrategy(Strategy):
+class RandomStrategy(Strategy):
     def __init__(self):
-        self.name = "hehe"
+        self.name = "random"
+
+class CasinoStrategy(Strategy):
+    def __init__(self):
+        self.name = "casino"
 
 # See https://www.blackjackapprenticeship.com/wp-content/uploads/2018/08/BJA_Basic_Strategy.jpg for charts
 class BasicStrategy(Strategy):
@@ -56,14 +61,12 @@ class BasicStrategy(Strategy):
 
     # Handles pair splitting deviations in the event that double-after-split (DAS) is offered.
     def DASdeviations(self):
-        self.pairSplitting.update(6, [True, True,  True,  True,  True,  False, False, False, False, False])
-        self.pairSplitting.update(4, [False, False, False, True, True, False, False, False, False, False])
-        self.pairSplitting.update(3, [True, True, True,  True,  True,  True,  False, False, False, False])
-        self.pairSplitting.update(2, [True, True, True,  True,  True,  True,  False, False, False, False])
+        self.pairSplitting.update({6: [True, True,  True,  True,  True,  False, False, False, False, False]})
+        self.pairSplitting.update({4: [False, False, False, True, True, False, False, False, False, False]})
+        self.pairSplitting.update({3: [True, True, True,  True,  True,  True,  False, False, False, False]})
+        self.pairSplitting.update({2: [True, True, True,  True,  True,  True,  False, False, False, False]})
     
-    def handlePairSplit(self, pairValue: int, dealerUpcard: int):
-        assert 1 <= pairValue <= 10
-        assert 2 <= dealerUpcard <= 11
+    def shouldSplitPair(self, pairValue: int, dealerUpcard: int):
         return self.pairSplitting.get(pairValue)[dealerUpcard - 2]
 
     
