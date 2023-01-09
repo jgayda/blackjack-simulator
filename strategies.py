@@ -1,4 +1,9 @@
 from hand import Hand
+from enum import Enum
+class GameActions(Enum):
+    HIT = "H"
+    STAND = "S"
+    DOUBLE = "D"
 class Strategy:
     def __init__(self):
         self.name = "strat"
@@ -68,9 +73,14 @@ class BasicStrategy(Strategy):
     
     def shouldSplitPair(self, pairValue: int, dealerUpcard: int):
         return self.pairSplitting.get(pairValue)[dealerUpcard - 2]
+    
+    def softTotalOptimalDecision(self, hand: Hand, dealerUpcard: int):
+        chartVal: GameActions = self.softTotals.get(hand.getSoftTotalOtherCard())[dealerUpcard - 2]
+        return chartVal
 
     
-    def __init__(self, doubleAfterSplitOffered):
+    def __init__(self, doubleAfterSplitOffered, isCounting):
         self.doubleAfterSplitOffered = doubleAfterSplitOffered
+        self.isCounting = isCounting
         if doubleAfterSplitOffered:
             self.DASdeviations()

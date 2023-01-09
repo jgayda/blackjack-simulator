@@ -11,19 +11,11 @@ class Shoe:
                 for rank in range (1, 14):
                     self.drawPile.append(Card(rank, suit))
     
-    def resetShoe(self):
-        print("Resetting shoe...")
-        for card in self.discard:
-            self.drawPile.append(card)
-        self.discard = []
-        random.shuffle(self.drawPile)
-    
+    def discardCard(self, card):
+        self.discard.append(card)
+
     def drawCard(self):
         return self.drawPile.pop(0)
-    
-    def discardCards(self, cardsToDiscard):
-        for card in cardsToDiscard:
-            self.discard.append(card)
     
     def getDecksRemaining(self):
         decksDiscarded = len(self.discard) % 52
@@ -38,3 +30,10 @@ class Shoe:
     def printDeck(self):
         for card in self.drawPile:
             card.printCard()
+    
+    def resetShoe(self):
+        print("Resetting shoe...")
+        for card in self.discard:
+            self.drawPile.append(card)
+        self.discard = []
+        random.shuffle(self.drawPile)

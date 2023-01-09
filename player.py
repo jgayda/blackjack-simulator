@@ -1,12 +1,13 @@
 from hand import Hand
+from typing import List
 class Player:
-    def __init__(self, name, bankroll, strategy):
+    def __init__(self, name, initialBankroll, strategy):
         print("Creating new player: ", name)
         self.name = name
-        self.bankroll = 1000
-        self.bankrollSnapshots = [1000]
+        self.bankroll = initialBankroll
+        self.bankrollSnapshots = [initialBankroll]
         self.strategy = strategy
-        self.hands = []
+        self.hands: List[Hand] = []
     
     def updateBankroll(self, amount):
         self.bankroll = self.bankroll + amount
@@ -24,13 +25,11 @@ class Player:
     def clearHand(self):
         self.hands.clear()
     
-    def splitPair(self):
+    def splitPair(self, tableMin, trueCount):
+        self.updateHand(Hand([self.hands[0].splitHand()], self.calculateBetSize(tableMin, trueCount)))
         print(self.hands)
-        currentHand = self.hands.pop()
-        hand1 = Hand(currentHand.card1)
-        hand2 = Hand(currentHand.card2)
-        self.updateHand(hand1)
-        self.updateHand(hand2)
     
-    def calculateBetSize(self):
-        return 5
+    def calculateBetSize(self, tableMin, trueCount):
+        if self.strategy.isCounting:
+            return tableMin * 2
+        return tableMin

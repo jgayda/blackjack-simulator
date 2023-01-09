@@ -19,7 +19,6 @@ class Suit:
     Diamonds = u"\N{WHITE DIAMOND SUIT}"
     Hearts = u"\N{WHITE HEART SUIT}"
     Spades = u"\N{BLACK SPADE SUIT}"
-
 class Card:
 
     def __init__(self, rank: int, suit):
@@ -27,7 +26,7 @@ class Card:
         assert 1 <= rank < 14
         self.rank = rank
         self.suit = suit
-    
+
     def getValue(self):
         if self.rank > 10: 
             return 10

@@ -5,7 +5,8 @@ from count import HiLoCount
 from hand import Hand
 from card import Card, CardValue
 from dealer import Dealer
-from strategies import BasicStrategy
+from strategies import BasicStrategy, GameActions
+from typing import List
 
 @click.command()
 @click.option('-s', '--shoesize', default=6, help='An integer representing the amount of decks to use in the shoe. Default is 6 decks.')
@@ -17,44 +18,66 @@ from strategies import BasicStrategy
 def main(shoesize, bankroll, hands, tablemin, penetration, dealersettings):
     print("Running blackjack simulation with variables:")
     print("Shoe size: ", shoesize, " | Bankroll: ", bankroll, " | Number of hands to simulate: ", hands, " | Minimum Table Bet: ", tablemin)
-    print("Dealer has rules: ")
-    print("Deck Penetration %: ", penetration, " | Dealer stands on ", dealersettings[0], " | Double after split offered? ", dealersettings[1], " | Players can re-split aces? ", dealersettings[2], " Surrender offered? ", dealersettings[3])
     game = BlackJackGame(shoesize, bankroll, hands, tablemin, penetration, dealersettings)
     game.startGame()
+
 class BlackJackGame:
     def __init__(self, shoeSize, bankroll, hands, tableMin, penetration, dealerSettings):
-        print("Initializing players and dealer...")
+        print("Initializing game...")
         self.shoeSize = shoeSize
-        self.shoe = Shoe(self.shoeSize)
         self.hands = hands
-        #self.players = [Player("Optimal", bankroll, BasicStrategy), Player("BasicStrat", bankroll, BasicStrategy), Player("Default", bankroll, NoStrategy)]
+        self.tableMin = tableMin
+
+        print("Dealer has rules: ")
+        print("Deck Penetration %: ", penetration, " | Dealer stands on ", dealerSettings[0], " | Double after split offered? ", dealerSettings[1], " | Players can re-split aces? ", dealerSettings[2], " Surrender offered? ", dealerSettings[3])
         dealerStandValue = dealerSettings[0]
         doubleAfterSplitOffered = dealerSettings[1]
         resplitAcesOffered = dealerSettings[2]
         surrenderOffered = dealerSettings[3]
-        self.dealer = Dealer(dealerStandValue, doubleAfterSplitOffered, resplitAcesOffered, surrenderOffered, penetration)
-        self.players = [Player("Optimal", bankroll, BasicStrategy(doubleAfterSplitOffered))]
+        self.dealer = Dealer(dealerStandValue, doubleAfterSplitOffered, resplitAcesOffered, surrenderOffered, penetration, shoeSize)
+
+        self.players = [Player("Optimal", bankroll, BasicStrategy(doubleAfterSplitOffered, isCounting=True)), 
+                        Player("Sub-Optimal I", bankroll, BasicStrategy(doubleAfterSplitOffered, isCounting=False)),
+                        Player("Sub-Optimal II", bankroll, BasicStrategy(doubleAfterSplitOffered, isCounting=True)),]
+        print("There are ", len(self.players), " players in the game.")
     
-    def playRound(self, player: Player, dealerUpcard: Card):
+    def playRound(self, player: Player, dealerUpcard: Card, handNumber, count):
         # First, determine if we have a pair and if we should split:
         dealtHand = player.getHand()
-        if dealtHand.isPair():
-            if player.strategy.shouldSplitPair(dealtHand.card1.getValue(), dealerUpcard.getValue()):
-                # The player *should* split the pair, but can they afford to?
-                if player.calculateBetSize() <= player.bankroll:
-                    player.splitPair()
+
+        if dealtHand.isBlackjack():
+            # Todo pay out player 3:2
+            print("Blackjack!")
+        else:
+            if dealtHand.isPair():
+                if player.strategy.shouldSplitPair(dealtHand.getHandValue() / 2, dealerUpcard.getValue()):
+                    # The player *should* split the pair, but can they afford to?
+                    print("Wanting to split pair...")
+                    if player.calculateBetSize(self.tableMin, count.trueCount) <= player.bankroll:
+                        print("Splitting pair...")
+                        player.splitPair(self.tableMin, count.trueCount)
             
-        # Next for each hand, determine what our action is
-        for hand in player.hands:
-            count = 1
+            # It's now possible that we have two hands that we need to simulate as the player could have split the pair.
+            # Instatiate a new dealtHands object:
+            for hand in player.hands:
+                if hand.isSoftTotal():
+                    print("We have a soft total!!!")
+                    action: GameActions = player.strategy.softTotalOptimalDecision(hand, dealerUpcard.getValue())
+                    print("Action: ", action)
+            # Next for each hand, determine what our action is
+            for hand in player.hands:
+                playerWins = handNumber % 2 == 0
+                if playerWins:
+                    player.updateBankroll(5)
+                else:
+                    player.updateBankroll(-5)
 
     def startGame(self):
-        self.shoe.resetShoe()
+        self.dealer.shuffle()
         print("Starting new blackjack game:")
-        print("Shoe size: ", self.shoeSize, " | Number of players: ", len(self.players))
 
         handCount = 1
-        playersInGame = []
+        playersInGame: List[Player] = []
 
         for player in self.players:
             playersInGame.append(player)
@@ -67,25 +90,31 @@ class BlackJackGame:
             print("Round: ", handCount, " Count: ", count.runningCount)
             # Deal out the players cards
             for player in playersInGame:
-                betSize = player.calculateBetSize()
-                card1: Card = self.shoe.drawCard()
+                betSize = player.calculateBetSize(self.tableMin, count.trueCount)
+
+                card1: Card = self.dealer.dealCard()
+                card2: Card = self.dealer.dealCard()
+
                 count.updateRunningCount(card1.getValue())
-                card2: Card = self.shoe.drawCard()
                 count.updateRunningCount(card2.getValue())
-                playerHand = Hand(card1, card2, betSize)
-                player.updateHand(playerHand)
-                playerHand.printHand()
+
+                player.updateHand(Hand([card1, card2], betSize))
+                player.getHand().printHand()
             
             # Deal out the dealers cards
-            upcard = self.shoe.drawCard()
+            upcard = self.dealer.dealCard()
             count.updateRunningCount(upcard.getValue())
 
             # The hidden card is not added to the count yet as only the dealer knows this information
-            hiddenCard = self.shoe.drawCard()
-            dealerHand = Hand(upcard, hiddenCard)
+            hiddenCard = self.dealer.dealCard()
+            dealerHand = Hand([upcard, hiddenCard], 0)
+            self.dealer.updateHand(dealerHand)
 
             print("Dealer shows:")
             upcard.printCard()
+
+            print("Dealer hides:")
+            hiddenCard.printCard()
 
             if upcard.getValue == CardValue.Ace:
                 # Todo offer insurance
@@ -93,20 +122,26 @@ class BlackJackGame:
 
             # Allow players to play out each round
             for player in playersInGame:
-                self.playRound(player, upcard)
+                self.playRound(player, upcard, handCount, count)
         
             handCount = handCount + 1
 
-            # Collect the cards from each player before moving onto the next round
+            # Collect the cards from each player before moving onto the next round and put the cards in the
+            # discard pile
             for player in playersInGame:
                 allHands = player.hands
                 for hand in allHands:
-                    self.shoe.discardCards([hand.card1, hand.card2])
+                    print("Hand: ", hand.cards, " | Betsize: ", hand.betSize, " | type: ", type(hand))
+                    self.dealer.discardCards(hand)
                 player.clearHand()
+            
+            # Discard the dealer's cards and move them to the discard pile
+            self.dealer.discardCards(self.dealer.hand)
+            print("No missing cards? : ", self.dealer.ensureDeckCompleteness(True))
 
             # If we have exceeded or reached optimal shoe penetration, reset the shoe and the running count
-            if self.shoe.getPenetration() > self.dealer.penetration:
-                self.shoe.resetShoe()
+            if self.dealer.deckPenetrationTooHigh():
+                self.dealer.shuffle()
                 count.resetCount()
 
 
