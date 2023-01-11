@@ -20,9 +20,15 @@ class Hand:
     def __init__(self, cards: List[Card], betSize: int):
         self.cards = cards
         self.betSize = betSize
+        self.insuranceBet = 0
+        self.isInsured = False
     
     def __iter__(self):
         return HandIterator(self.cards)
+
+    def insureHand(self):
+        self.insuranceBet = self.betSize / 2
+        self.isInsured = True
     
     def isBlackjack(self):
         if len(self.cards) is not 2:
@@ -34,11 +40,11 @@ class Hand:
         return False
 
     def isPair(self):
-        if len(self.cards) == 1: 
+        if len(self.cards) is not 2: 
             return False
-        card1Value = self.cards[0].getValue()
-        card2Value = self.cards[1].getValue()
-        return card1Value == card2Value
+        card1Rank = self.cards[0].getRank()
+        card2Rank = self.cards[1].getRank()
+        return card1Rank == card2Rank
     
     def isSoftTotal(self):
         if len(self.cards) == 1:
@@ -48,13 +54,16 @@ class Hand:
                 return True
         return False
     
+    def getInitialBet(self):
+        return self.betSize
+
     def getSoftTotalOtherCard(self):
         for card in self.cards:
             if card.getValue() is not 1:
                 return card.getValue()
     
-    def printHand(self):
-        print("Player has hand of size :", len(self.cards))
+    def printHand(self, playerName):
+        print("Player: ", playerName, " has hand:")
         for card in self.cards:
             card.printCard()
     

@@ -9,27 +9,27 @@ class Player:
         self.strategy = strategy
         self.hands: List[Hand] = []
     
+    def calculateBetSize(self, tableMin, trueCount):
+        if self.strategy.isCounting:
+            return tableMin * 2
+        return tableMin
+    
+    def canPlay(self):
+        return len(self.hands) > 0
+    
+    def clearHand(self):
+        self.hands.clear()
+    
+    def getHand(self):
+        return self.hands[0]
+    
+    def splitPair(self, tableMin, trueCount):
+        self.updateHand(Hand([self.hands[0].splitHand()], self.calculateBetSize(tableMin, trueCount)))
+        print(self.hands)
+    
     def updateBankroll(self, amount):
         self.bankroll = self.bankroll + amount
         self.bankrollSnapshots.append(self.bankroll)
     
     def updateHand(self, hand):
         self.hands.append(hand)
-    
-    def getHand(self):
-        return self.hands[0]
-    
-    def canPlay(self):
-        return len(self.hands) > 0
-
-    def clearHand(self):
-        self.hands.clear()
-    
-    def splitPair(self, tableMin, trueCount):
-        self.updateHand(Hand([self.hands[0].splitHand()], self.calculateBetSize(tableMin, trueCount)))
-        print(self.hands)
-    
-    def calculateBetSize(self, tableMin, trueCount):
-        if self.strategy.isCounting:
-            return tableMin * 2
-        return tableMin
