@@ -26,7 +26,10 @@ class Card:
         assert 1 <= rank < 14
         self.rank = rank
         self.suit = suit
-
+    
+    def getRank(self):
+        return self.rank
+    
     def getValue(self):
         if self.rank > 10: 
             return 10
