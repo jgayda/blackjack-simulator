@@ -1,14 +1,18 @@
 from hand import Hand
-from enum import Enum
+from enum import Enum, auto
+from dealer import HouseRules
 import random
 class GameActions(Enum):
-    HIT = "H"
-    STAND = "S"
-    DOUBLE = "D"
+    HIT = 'H'
+    STAND = 'S'
+    DOUBLE = 'D'
 class StrategyInterface:
-    def __init__(self, doubleAfterSplitOffered, isCounting):
+    def __init__(self, houseRules: HouseRules, isCounting):
         pass
     
+    def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard: int):
+        pass
+
     def shouldSplitPair(self, pairValue: int, dealerUpcard: int) -> bool:
         pass
 
@@ -21,10 +25,13 @@ class StrategyInterface:
 # RandomStrategy represents the strategy of a player who will leave every single game decision up to chance.
 # This goes without saying, do not attempt this strategy in a real life casino.
 class RandomStrategy(StrategyInterface):
-    def __init__(self, doubleAfterSplitOffered, isCounting):
-        self.doubleAfterSplitOffered = doubleAfterSplitOffered
+    def __init__(self, houseRules, isCounting):
+        self.houseRules = houseRules
         self.isCounting = isCounting
         self.name = "random"
+    
+    def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard: int):
+        return random.choice([GameActions.HIT, GameActions.STAND, GameActions.DOUBLE])
     
     def shouldSplitPair(self, pairValue: int, dealerUpcard: int) -> bool:
         return bool(random.getrandbits(1))
@@ -38,9 +45,9 @@ class RandomStrategy(StrategyInterface):
 # CasinoStrategy represents the strategy of a player who will play exactly how the casino plays. In other words,
 # if the dealer was an actual player at the table this is who they'd be. 
 class CasinoStrategy(StrategyInterface):
-    def __init__(self, doubleAfterSplitOffered, isCounting):
+    def __init__(self, houseRules: HouseRules, isCounting):
         self.name = "casino"
-        self.doubleAfterSplitOffered = doubleAfterSplitOffered
+        self.houseRules = houseRules
         self.isCounting = isCounting
     
     def shouldSplitPair(self, pairValue: int, dealerUpcard: int):
@@ -52,40 +59,43 @@ class CasinoStrategy(StrategyInterface):
 
 # See https://www.blackjackapprenticeship.com/wp-content/uploads/2018/08/BJA_Basic_Strategy.jpg for charts
 class BasicStrategy(StrategyInterface):
-    def __init__(self, doubleAfterSplitOffered, isCounting):
-        self.doubleAfterSplitOffered = doubleAfterSplitOffered
+    def __init__(self, houseRules: HouseRules, isCounting):
+        self.houseRules = houseRules
         self.isCounting = isCounting
-        if doubleAfterSplitOffered:
+        if self.houseRules.doubleAfterSplitOffered:
             self.DASdeviations()
+        if not self.houseRules.doubleOnSoftTotal:
+            self.softTotalDeviations()
     
     # Contains the optimal pair splitting strategy given the rank of the player's pair and the
     # dealer's upcard according to Basic Strategy principles. 
-        #     2      3      4      5      6      7      8      9      10      A
+        #     A       2      3      4      5      6      7      8      9      10  
     pairSplitting = {
         1:  [True,  True,  True,  True,  True,  True,  True,  True,  True,  True],
         10: [False, False, False, False, False, False, False, False, False, False],
-        9:  [True,  True,  True,  True,  True,  False, True,  True,  False, False],
+        9:  [False, True,  True,  True,  True,  True,  False, True,  True,  False],
         8:  [True,  True,  True,  True,  True,  True,  True,  True,  True,  True],
-        7:  [True,  True,  True,  True,  True,  True,  False, False, False, False],
-        6:  [False, True,  True,  True,  True,  False, False, False, False, False],
+        7:  [False, True,  True,  True,  True,  True,  True,  False, False, False],
+        6:  [False, False, True,  True,  True,  True,  False, False, False, False],
         5:  [False, False, False, False, False, False, False, False, False, False],
         4:  [False, False, False, False, False, False, False, False, False, False],
-        3:  [False, False, True,  True,  True,  True,  False, False, False, False],
-        2:  [False, False, True,  True,  True,  True,  False, False, False, False]
+        3:  [False, False, False, True,  True,  True,  True,  False, False, False],
+        2:  [False, False, False, True,  True,  True,  True,  False, False, False]
     }
 
     # Contains the optimal hit/stand/double strategy given that the player has one ace and another card
     # of a certain value and the dealer's upcard according to Basic Strategy principles. 
-        #    2     3     4     5     6     7    8    9   10    A
+        #    A    2    3    4    5    6    7    8    9    10
     softTotals = {
-        9: ["S",  "S",  "S",  "S",  "S",  "S", "S", "S", "S", "S"],
-        8: ["S",  "S",  "S",  "S",  "Ds", "S", "S", "S", "S", "S"],
-        7: ["Ds", "Ds", "Ds", "Ds", "Ds", "S", "S", "H", "H", "H"],
-        6: ["H",  "D",  "D",  "D",  "D",  "H", "H", "H", "H", "H"],
-        5: ["H",  "H",  "D",  "D",  "D",  "H", "H", "H", "H", "H"],
-        4: ["H",  "H",  "D",  "D",  "D",  "H", "H", "H", "H", "H"],
-        3: ["H",  "H",  "H",  "D",  "D",  "H", "H", "H", "H", "H"],
-        2: ["H",  "H",  "H",  "D",  "D",  "H", "H", "H", "H", "H"]
+        10: ["S", "S", "S", "S", "S", "S", "S", "S", "S", "S"],
+        9:  ["S", "S", "S", "S", "S", "S", "S", "S", "S", "S"],
+        8:  ["S", "S", "S", "S", "S", "D", "S", "S", "S", "S"],
+        7:  ["H", "D", "D", "D", "D", "D", "S", "S", "H", "H"],
+        6:  ["H", "H", "D", "D", "D", "D", "H", "H", "H", "H"],
+        5:  ["H", "H", "H", "D", "D", "D", "H", "H", "H", "H"],
+        4:  ["H", "H", "H", "D", "D", "D", "H", "H", "H", "H"],
+        3:  ["H", "H", "H", "H", "D", "D", "H", "H", "H", "H"],
+        2:  ["H", "H", "H", "H", "D", "D", "H", "H", "H", "H"]
     }
 
     # Contains the optimal hit/stand/double strategy for the player's cards against the dealer's upcard
@@ -93,28 +103,46 @@ class BasicStrategy(StrategyInterface):
         #     2    3    4    5    6    7    8    9   10    A
     hardTotals = {
         17: ["S", "S", "S", "S", "S", "S", "S", "S", "S", "S"],
-        16: ["S", "S", "S", "S", "S", "H", "H", "H", "H", "H"],
-        15: ["S", "S", "S", "S", "S", "H", "H", "H", "H", "H"],
-        14: ["S", "S", "S", "S", "S", "H", "H", "H", "H", "H"],
-        13: ["S", "S", "S", "S", "S", "H", "H", "H", "H", "H"],
-        12: ["H", "H", "S", "S", "S", "H", "H", "H", "H", "H"],
+        16: ["H", "S", "S", "S", "S", "S", "H", "H", "H", "H"],
+        15: ["H", "S", "S", "S", "S", "S", "H", "H", "H", "H"],
+        14: ["H", "S", "S", "S", "S", "S", "H", "H", "H", "H"],
+        13: ["H", "S", "S", "S", "S", "S", "H", "H", "H", "H"],
+        12: ["H", "H", "H", "S", "S", "S", "H", "H", "H", "H"],
         11: ["D", "D", "D", "D", "D", "D", "D", "D", "D", "D"],
-        10: ["D", "D", "D", "D", "D", "D", "D", "D", "H", "H"],
-        9:  ["H", "D", "D", "D", "D", "H", "H", "H", "H", "H"],
+        10: ["H", "D", "D", "D", "D", "D", "D", "D", "D", "H"],
+        9:  ["H", "H", "D", "D", "D", "D", "H", "H", "H", "H"],
         8:  ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H"],
     }
     # Handles pair splitting deviations in the event that double-after-split (DAS) is offered.
     def DASdeviations(self):
-        self.pairSplitting.update({6: [True, True,  True,  True,  True,  False, False, False, False, False]})
-        self.pairSplitting.update({4: [False, False, False, True, True, False, False, False, False, False]})
-        self.pairSplitting.update({3: [True, True, True,  True,  True,  True,  False, False, False, False]})
-        self.pairSplitting.update({2: [True, True, True,  True,  True,  True,  False, False, False, False]})
+        self.pairSplitting.update({6: [False, True, True,  True,  True,  True,  False, False, False, False]})
+        self.pairSplitting.update({4: [False, False, False, False, True, True, False, False, False, False]})
+        self.pairSplitting.update({3: [False, True, True, True,  True,  True,  True,  False, False, False]})
+        self.pairSplitting.update({2: [False, True, True, True,  True,  True,  True,  False, False, False]})
+    
+    def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard: int, numSoftAces):
+        handValue = hand.getHandValue() - numSoftAces * 10
+        if handValue <= 8:
+            return GameActions.HIT.value
+        if handValue >= 17:
+            return GameActions.STAND.value
+        return self.hardTotals.get(handValue)[dealerUpcard - 2]
 
     def shouldSplitPair(self, pairValue: int, dealerUpcard: int):
         return self.pairSplitting.get(pairValue)[dealerUpcard - 2]
     
+    # Handles soft total deviations in the event that players cannot double on a soft total.
+    def softTotalDeviations(self):
+        self.softTotals.update({8: ["S", "S", "S", "S", "S", "S", "S", "S", "S", "S"]})
+        self.softTotals.update({7: ["H", "S", "S", "S", "S", "S", "S", "S", "H", "H"]})
+        self.softTotals.update({6: ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H"]})
+        self.softTotals.update({5: ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H"]})
+        self.softTotals.update({4: ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H"]})
+        self.softTotals.update({3: ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H"]})
+        self.softTotals.update({2: ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H"]})
+    
     def softTotalOptimalDecision(self, hand: Hand, dealerUpcard: int):
-        chartVal: GameActions = self.softTotals.get(hand.getSoftTotalOtherCard())[dealerUpcard - 2]
+        chartVal: GameActions = self.softTotals.get(hand.getSoftTotalAcelessValue())[dealerUpcard - 1]
         return chartVal
     
     def willTakeInsurance(self, runningCount):
