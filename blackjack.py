@@ -7,6 +7,7 @@ from card import Card, CardValue
 from dealer import Dealer, HouseRules
 from strategies import BasicStrategy, GameActions
 from typing import List
+from collections import deque
 
 @click.command()
 @click.option('-s', '--shoesize', default=6, help='An integer representing the amount of decks to use in the shoe. Default is 6 decks.')
@@ -18,7 +19,7 @@ from typing import List
 def main(shoesize, bankroll, hands, tablemin, penetration, dealersettings):
     print("Running blackjack simulation with variables:")
     print("Shoe size: ", shoesize, " | Bankroll: ", bankroll, " | Number of hands to simulate: ", hands, " | Minimum Table Bet: ", tablemin)
-    houseRules = HouseRules(standValue=dealersettings[0], DASoffered=dealersettings[1], RSAoffered=dealersettings[2], LSoffered=dealersettings[3], doubleOnSoft7OrHigher=dealersettings[4])
+    houseRules = HouseRules(standValue=dealersettings[0], DASoffered=dealersettings[1], RSAoffered=dealersettings[2], LSoffered=dealersettings[3], doubleOnSoftTotal=dealersettings[4])
     game = BlackJackGame(shoesize, bankroll, hands, tablemin, penetration, houseRules)
     game.startGame()
 
@@ -33,9 +34,9 @@ class BlackJackGame:
         print("Deck Penetration %: ", penetration, " | Minimum table bet: $", tableMin)
         self.dealer = Dealer(penetration, shoeSize, houseRules)
 
-        self.players = [Player("Optimal", bankroll, BasicStrategy(self.dealer.houseRules.DASoffered, isCounting=True)), 
-                        Player("Sub-Optimal I", bankroll, BasicStrategy(self.dealer.houseRules.DASoffered, isCounting=False)),
-                        Player("Random", bankroll, BasicStrategy(self.dealer.houseRules.DASoffered, isCounting=True)),]
+        self.players = [Player("Optimal", bankroll, BasicStrategy(self.dealer.houseRules, isCounting=True)), 
+                        Player("Sub-Optimal I", bankroll, BasicStrategy(self.dealer.houseRules, isCounting=False)),
+                        Player("Random", bankroll, BasicStrategy(self.dealer.houseRules, isCounting=True)),]
         print("There are ", len(self.players), " players in the game.")
     
     def clearAllCards(self, players: List[Player]):
@@ -77,18 +78,29 @@ class BlackJackGame:
 
             player.updateBankroll(-1 * betSize)
             player.updateHand(Hand([card1, card2], betSize))
-            player.getHand().printHand(player.name)
+            player.getStartingHand().printHand(player.name)
     
+    def doubleDown(self, player: Player, hand: Hand, count: HiLoCount):
+        print("Doubling down!")
+        player.updateBankroll(-1 * hand.getInitialBet())
+        hand.doubleDown()
+        self.hit(player, hand, count)
+    
+    def handleBustHand(self, player: Player, hand: Hand):
+        print("Hand went bust.")
+
     def handleDealerBlackjack(self, players: List[Player], count: HiLoCount):
         # Need to update the count as the dealer reveals the hidden card to show blackjack
-        # Guaranteed to have a count value of +1
+        # Guaranteed to have a count value of -1
         count.updateRunningCount(10)
 
         for player in players:
             for hand in player.hands:
                 if hand.isBlackjack():
+                    print("Player ", player.name, " pushes with another blackjack.")
                     player.updateBankroll(hand.betSize)
                 elif hand.isInsured:
+                    print("Player ", player.name, "'s hand is insured!")
                     player.updateBankroll(hand.betSize + hand.insuranceBet)
                 else:
                     self.dealer.updateGains(hand.betSize)
@@ -100,7 +112,6 @@ class BlackJackGame:
         self.dealer.discardPlayersCards(hand, player.name)
         player.clearHand()
 
-    
     def handleInsurance(self, players: List[Player], trueCount):
         print("Dealer shows ace - Insurance offered")
         for player in players:
@@ -108,19 +119,28 @@ class BlackJackGame:
                 if player.strategy.willTakeInsurance(trueCount) and not hand.isBlackjack():
                     player.updateBankroll(-1 * hand.betSize / 2)
                     hand.insureHand()
+                    print("Player ", player.name, " has insured their hand.")
         print("Insurance closed.")
 
     def handleSplitPair(self, player: Player, hand: Hand, dealerUpcard: Card, trueCount):
         print("Determining whether or not to split pair based on player's strategy...")
         if player.strategy.shouldSplitPair(hand.getHandValue() / 2, dealerUpcard.getValue()) and player.calculateBetSize(self.tableMin, trueCount) <= player.bankroll:
             print("Splitting pair!")
-            player.splitPair(self.tableMin, trueCount)
-        else:
-            print("Player decided not to split pair.")
+            splitHand = player.splitPair(hand)
+            return splitHand
+        print("Player decided not to split pair.")
+        return None
 
+    
+    def hit(self, player: Player, hand: Hand, count: HiLoCount):
+        hitCard = self.dealer.dealCard()
+        count.updateRunningCount(hitCard.getValue())
+        hand.addCard(hitCard)
+        print(player.name, " has new hand: ")
+        hand.printHand(player.name)
 
     def playRound(self, player: Player, dealerUpcard: Card, handNumber, count):
-        dealtHand = player.getHand()
+        dealtHand = player.getStartingHand()
         print(player.name, " is playing their hand...")
 
         # Check if the dealt hand is a blackjack and payout immediately if it is
@@ -133,23 +153,48 @@ class BlackJackGame:
             
             # It's now possible that we have two hands that we need to simulate as the player could have split the pair.
             # Instatiate a new dealtHands object:
+            handQueue = deque()
             for hand in player.hands:
-                if hand.isSoftTotal():
-                    print("We have a soft total!!!")
-                    softTotal = hand.getHandValue()
-                    softTotals = [softTotal + 10, softTotal]
-                    print("Soft debug:")
-                    dealerUpcard.printCard()
-                    action: GameActions = player.strategy.softTotalOptimalDecision(hand, dealerUpcard.getValue())
-                    print("Action: ", action)
-                
-            # Next for each hand, determine what our action is
-            for hand in player.hands:
-                playerWins = handNumber % 2 == 0
-                if playerWins:
-                    player.updateBankroll(5)
-                else:
-                    player.updateBankroll(-5)
+                handQueue.append(hand)
+
+            while len(handQueue) > 0:
+                hand = handQueue.pop()
+                action: GameActions = None
+                softTotalDeductionCount = 0
+
+                while (action != GameActions.STAND.value):
+                    if hand.isBust():
+                        if softTotalDeductionCount < hand.getAcesCount():
+                            print("BUST! Ace now becomes 1. Old hand value: ", hand.getHandValue(), " New value: ", hand.getHandValue() - 10)
+                            softTotalDeductionCount += 1
+                        else:
+                            print("BUST! Value is: ", hand.getHandValue() - softTotalDeductionCount * 10)
+                            self.handleBustHand(player, hand)
+                            break
+                    if hand.isSoftTotal() and softTotalDeductionCount < hand.getAcesCount():
+                        print("We have a soft total...")
+                        action = player.strategy.softTotalOptimalDecision(hand, dealerUpcard.getValue())
+                    elif hand.isPair():
+                        print("We have a pair...")
+                        splitHand = self.handleSplitPair(player, hand, dealerUpcard, count.trueCount)
+                        if splitHand is not None:
+                            handQueue.append(splitHand)
+                            handQueue.append(hand)
+                        break
+                    else:
+                        # Get hard total value
+                        print("We have a hard total of ", hand.getHandValue()- softTotalDeductionCount * 10)
+                        action = player.strategy.hardTotalOptimalDecision(hand, dealerUpcard.getValue(), softTotalDeductionCount)
+                    if (action == GameActions.HIT.value):
+                        print("Player is gonna hit!")
+                        self.hit(player, hand, count)
+                    elif (action == GameActions.STAND.value):
+                        print("Player will stand")
+                    elif (action == GameActions.DOUBLE.value):
+                        print("Double down!")
+                        self.doubleDown(player, hand, count)
+                    
+        print(player.name, " has played all of their hands!")
 
     def startGame(self):
         self.dealer.shuffle()

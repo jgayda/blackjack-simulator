@@ -4,12 +4,12 @@ from hand import Hand
 from typing import List
 
 class HouseRules:
-    def __init__(self, standValue, DASoffered, RSAoffered, LSoffered, doubleOnSoft7OrHigher):
+    def __init__(self, standValue, DASoffered, RSAoffered, LSoffered, doubleOnSoftTotal):
         self.standValue = standValue
-        self.DASoffered = DASoffered
-        self.RSAoffered = RSAoffered
-        self.LSoffered = LSoffered
-        self.doubleOnSoft7OrHigher = doubleOnSoft7OrHigher
+        self.doubleAfterSplitOffered = DASoffered
+        self.resplitAcesOffered = RSAoffered
+        self.lateSurrenderOffered = LSoffered
+        self.doubleOnSoftTotal = doubleOnSoftTotal
         print("HOUSE RULES:")
         print("Dealer stands on ", standValue, " | Double after split offered? ", DASoffered, " | Players can re-split aces? ", RSAoffered, " Surrender offered? ", LSoffered)
 class Dealer:
