@@ -20,12 +20,14 @@ class Player:
     def clearHand(self):
         self.hands.clear()
     
-    def getHand(self):
+    def getStartingHand(self):
         return self.hands[0]
     
-    def splitPair(self, tableMin, trueCount):
-        self.updateHand(Hand([self.hands[0].splitHand()], self.calculateBetSize(tableMin, trueCount)))
+    def splitPair(self, hand: Hand):
+        splitHand = Hand([hand.splitHand()], hand.getInitialBet())
+        self.updateHand(splitHand)
         print(self.hands)
+        return splitHand
     
     def updateBankroll(self, amount):
         self.bankroll = self.bankroll + amount
