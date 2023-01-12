@@ -25,6 +25,12 @@ class Hand:
     
     def __iter__(self):
         return HandIterator(self.cards)
+    
+    def addCard(self, card: Card):
+        self.cards.append(card)
+    
+    def doubleDown(self):
+        self.betSize = self.betSize * 2
 
     def insureHand(self):
         self.insuranceBet = self.betSize / 2
@@ -38,6 +44,9 @@ class Hand:
         if (card1Value == 1 or card2Value == 1) and (card1Value == 10 or card2Value == 10):
             return True
         return False
+    
+    def isBust(self):
+        return self.getHandValue() > 21
 
     def isPair(self):
         if len(self.cards) is not 2: 
@@ -54,13 +63,22 @@ class Hand:
                 return True
         return False
     
+    def getAcesCount(self):
+        numAces = 0
+        for card in self.cards:
+            if card.getValue() == 1:
+                numAces += 1
+        return numAces
+    
     def getInitialBet(self):
         return self.betSize
 
-    def getSoftTotalOtherCard(self):
+    def getSoftTotalAcelessValue(self):
+        sum = 0
         for card in self.cards:
             if card.getValue() is not 1:
-                return card.getValue()
+                sum += card.getValue()
+        return sum
     
     def printHand(self, playerName):
         print("Player: ", playerName, " has hand:")
