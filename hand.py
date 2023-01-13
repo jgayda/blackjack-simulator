@@ -74,11 +74,11 @@ class Hand:
         return self.betSize
 
     def getSoftTotalAcelessValue(self):
-        sum = 0
+        total = 0
         for card in self.cards:
             if card.getValue() is not 1:
-                sum += card.getValue()
-        return sum
+                total += card.getValue()
+        return total
     
     def printHand(self, playerName):
         print("Player: ", playerName, " has hand:")

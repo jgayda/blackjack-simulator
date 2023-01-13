@@ -142,7 +142,11 @@ class BasicStrategy(StrategyInterface):
         self.softTotals.update({2: ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H"]})
     
     def softTotalOptimalDecision(self, hand: Hand, dealerUpcard: int):
-        chartVal: GameActions = self.softTotals.get(hand.getSoftTotalAcelessValue())[dealerUpcard - 1]
+        acelessTotalVal = hand.getSoftTotalAcelessValue()
+        print("Hand value without aces: ", acelessTotalVal)
+        if acelessTotalVal >= 10:
+            return GameActions.STAND.value
+        chartVal: GameActions = self.softTotals.get(acelessTotalVal)[dealerUpcard - 1]
         return chartVal
     
     def willTakeInsurance(self, runningCount):

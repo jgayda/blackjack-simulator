@@ -6,6 +6,7 @@ from hand import Hand
 from card import Card, CardValue
 from dealer import Dealer, HouseRules
 from strategies import BasicStrategy, GameActions
+from bet import spread1_50, spread1_6
 from typing import List
 from collections import deque
 
@@ -13,7 +14,7 @@ from collections import deque
 @click.option('-s', '--shoesize', default=6, help='An integer representing the amount of decks to use in the shoe. Default is 6 decks.')
 @click.option('-b', '--bankroll', default=1000, help='Determines the amount of dollars that each player begins the game with in their bankroll. Default is $1000.')
 @click.option('-h', '--hands', default=1000, help='Determines the number of hands to deal. Default is 1000.')
-@click.option('-t', '--tablemin', default=5, help='Determines the minimum table bet. Default is 5.')
+@click.option('-t', '--tablemin', default=10, help='Determines the minimum table bet. Default is 5.')
 @click.option('-p', '--penetration', default=0.84, help='Dictates the deck penetration by the dealer. Default is 0.84 which means that the dealer will penetrate 84 percent of the shoe before re-shuffling')
 @click.option('-d', '--dealersettings', default=[17, True, True, True, True], help='Assigns the dealer rules.')
 def main(shoesize, bankroll, hands, tablemin, penetration, dealersettings):
@@ -21,7 +22,7 @@ def main(shoesize, bankroll, hands, tablemin, penetration, dealersettings):
     print("Shoe size: ", shoesize, " | Bankroll: ", bankroll, " | Number of hands to simulate: ", hands, " | Minimum Table Bet: ", tablemin)
     houseRules = HouseRules(standValue=dealersettings[0], DASoffered=dealersettings[1], RSAoffered=dealersettings[2], LSoffered=dealersettings[3], doubleOnSoftTotal=dealersettings[4])
     game = BlackJackGame(shoesize, bankroll, hands, tablemin, penetration, houseRules)
-    game.startGame()
+    game.startGame(isVerbose=True)
 
 class BlackJackGame:
     def __init__(self, shoeSize, bankroll, hands, tableMin, penetration, houseRules):
@@ -34,9 +35,9 @@ class BlackJackGame:
         print("Deck Penetration %: ", penetration, " | Minimum table bet: $", tableMin)
         self.dealer = Dealer(penetration, shoeSize, houseRules)
 
-        self.players = [Player("Optimal", bankroll, BasicStrategy(self.dealer.houseRules, isCounting=True)), 
-                        Player("Sub-Optimal I", bankroll, BasicStrategy(self.dealer.houseRules, isCounting=False)),
-                        Player("Random", bankroll, BasicStrategy(self.dealer.houseRules, isCounting=True)),]
+        self.players = [Player("Optimal", bankroll, BasicStrategy(self.dealer.houseRules, isCounting=True), spread1_50()), 
+                        Player("Sub-Optimal I", bankroll, BasicStrategy(self.dealer.houseRules, isCounting=False), spread1_6()),
+                        Player("Random", bankroll, BasicStrategy(self.dealer.houseRules, isCounting=True), spread1_6())]
         print("There are ", len(self.players), " players in the game.")
     
     def clearAllCards(self, players: List[Player]):
@@ -68,7 +69,7 @@ class BlackJackGame:
     def dealPlayersHands(self, players, count):
         print("Dealing hands...")
         for player in players:
-            betSize = player.calculateBetSize(self.tableMin, count.trueCount)
+            betSize = player.calculateBetSize(self.tableMin, self.getTrueCount(count))
 
             card1: Card = self.dealer.dealCard()
             card2: Card = self.dealer.dealCard()
@@ -85,6 +86,13 @@ class BlackJackGame:
         player.updateBankroll(-1 * hand.getInitialBet())
         hand.doubleDown()
         self.hit(player, hand, count)
+    
+    def getTrueCount(self, count: HiLoCount):
+        decksRemaining = self.dealer.shoe.getDecksRemaining()
+        print("TYPE OF COUNT", type(count))
+        trueCount = count.getTrueCount(decksRemaining)
+        print("TRUE COUNT: ", trueCount)
+        return trueCount
     
     def handleBustHand(self, player: Player, hand: Hand):
         print("Hand went bust.")
@@ -112,8 +120,9 @@ class BlackJackGame:
         self.dealer.discardPlayersCards(hand, player.name)
         player.clearHand()
 
-    def handleInsurance(self, players: List[Player], trueCount):
+    def handleInsurance(self, players: List[Player], count: HiLoCount):
         print("Dealer shows ace - Insurance offered")
+        trueCount = self.getTrueCount(count)
         for player in players:
             for hand in player.hands:
                 if player.strategy.willTakeInsurance(trueCount) and not hand.isBlackjack():
@@ -122,8 +131,10 @@ class BlackJackGame:
                     print("Player ", player.name, " has insured their hand.")
         print("Insurance closed.")
 
-    def handleSplitPair(self, player: Player, hand: Hand, dealerUpcard: Card, trueCount):
+    def handleSplitPair(self, player: Player, hand: Hand, dealerUpcard: Card, count: HiLoCount):
         print("Determining whether or not to split pair based on player's strategy...")
+        print("handleSplitPair() -> Type of count:", type(count))
+        trueCount = self.getTrueCount(count)
         if player.strategy.shouldSplitPair(hand.getHandValue() / 2, dealerUpcard.getValue()) and player.calculateBetSize(self.tableMin, trueCount) <= player.bankroll:
             print("Splitting pair!")
             splitHand = player.splitPair(hand)
@@ -149,7 +160,7 @@ class BlackJackGame:
         else:
             # First, determine if we have a pair and if we should split:
             if dealtHand.isPair():
-                self.handleSplitPair(player, dealtHand, dealerUpcard, count.trueCount)
+                self.handleSplitPair(player, dealtHand, dealerUpcard, count)
             
             # It's now possible that we have two hands that we need to simulate as the player could have split the pair.
             # Instatiate a new dealtHands object:
@@ -176,7 +187,7 @@ class BlackJackGame:
                         action = player.strategy.softTotalOptimalDecision(hand, dealerUpcard.getValue())
                     elif hand.isPair():
                         print("We have a pair...")
-                        splitHand = self.handleSplitPair(player, hand, dealerUpcard, count.trueCount)
+                        splitHand = self.handleSplitPair(player, hand, dealerUpcard, count)
                         if splitHand is not None:
                             handQueue.append(splitHand)
                             handQueue.append(hand)
@@ -190,13 +201,19 @@ class BlackJackGame:
                         self.hit(player, hand, count)
                     elif (action == GameActions.STAND.value):
                         print("Player will stand")
+                        break
                     elif (action == GameActions.DOUBLE.value):
                         print("Double down!")
                         self.doubleDown(player, hand, count)
                     
         print(player.name, " has played all of their hands!")
-
-    def startGame(self):
+    
+    def printPlayersBankroll(self, players: List[Player]):
+        for player in players:
+            prevIndex = len(player.bankrollSnapshots) - 2
+            print(player.name, ' has a bankroll of $', player.bankroll, " (Prev hand: $", player.bankrollSnapshots[prevIndex], ")")
+    
+    def startGame(self, isVerbose):
         self.dealer.shuffle()
         print("Starting new blackjack game:")
 
@@ -211,14 +228,18 @@ class BlackJackGame:
 
         # Play the game! 
         while (handCount <= self.hands and len(playersInGame) > 0):
+            print(" - - - - - - - - - - -")
+            print(" - - - - - - - - - - -")
             print("Round: ", handCount, " Count: ", count.runningCount)
+            print(" - - - - - - - - - - -")
+            print(" - - - - - - - - - - -")
             # Deal out the players' and dealer's cards
             self.dealPlayersHands(playersInGame, count)
             self.dealDealersHand(count)
 
             # If the dealer shows an ace, dealer will offer insurance to all players.
             if self.dealer.insuranceIsOffered():
-                self.handleInsurance(playersInGame, count.runningCount)
+                self.handleInsurance(playersInGame, count)
             
             # If the dealer was dealt a blackjack, all players automatically lose UNLESS they too have a blackjack
             if self.dealer.hand.isBlackjack():
@@ -234,7 +255,9 @@ class BlackJackGame:
 
             # Used to debug deck sizes to ensure that no cards are being lost:
             self.dealer.ensureDeckCompleteness(isVerbose=True)
-
+            
+            if isVerbose:
+                self.printPlayersBankroll(playersInGame)
             # If we have exceeded or reached optimal shoe penetration, reset the shoe and the running count
             if self.dealer.deckPenetrationTooHigh():
                 self.dealer.shuffle()
