@@ -33,6 +33,9 @@ class Card:
     def getValue(self):
         if self.rank > 10: 
             return 10
+        if self.rank == 1:
+            # Always returns the hard ace value of 11
+            return 11
         return self.rank
     
     def printCard(self):

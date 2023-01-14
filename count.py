@@ -7,7 +7,7 @@ class HiLoCount:
     def updateRunningCount(self, cardValue: int):
         if 2 <= cardValue <= 6:
             self.runningCount = self.runningCount + 1
-        elif (10 <= cardValue <= 13 or cardValue == 1):
+        elif (cardValue == 10 or cardValue == 11):
             self.runningCount = self.runningCount - 1
     
     def getTrueCount(self, decksRemaining: float) -> int:

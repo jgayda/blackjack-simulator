@@ -10,7 +10,7 @@ class StrategyInterface:
     def __init__(self, houseRules: HouseRules, isCounting):
         pass
     
-    def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard: int):
+    def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard: int, numSoftAces: int):
         pass
 
     def shouldSplitPair(self, pairValue: int, dealerUpcard: int) -> bool:
@@ -30,7 +30,7 @@ class RandomStrategy(StrategyInterface):
         self.isCounting = isCounting
         self.name = "random"
     
-    def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard: int):
+    def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard: int, numSoftAces):
         return random.choice([GameActions.HIT, GameActions.STAND, GameActions.DOUBLE])
     
     def shouldSplitPair(self, pairValue: int, dealerUpcard: int) -> bool:
@@ -50,12 +50,23 @@ class CasinoStrategy(StrategyInterface):
         self.houseRules = houseRules
         self.isCounting = isCounting
     
+    def hardTotalOptimalDecision(self, hand: Hand, numSoftAces):
+        handValue = hand.getHandValue() - numSoftAces * 10
+        print("hardTotalOptimalDecision() -> Hard total value: ", hand.getHandValue() - numSoftAces * 10)
+        if handValue < 17:
+            return GameActions.HIT.value
+        return GameActions.STAND.value
+    
     def shouldSplitPair(self, pairValue: int, dealerUpcard: int):
         # Casinos never split pairs! 
         return False
     
     def softTotalOptimalDecision(self, hand: Hand, dealerUpcard: int) -> GameActions:
-        return super().softTotalOptimalDecision(hand, dealerUpcard)
+        acelessTotalVal = hand.getSoftTotalAcelessValue()
+        print("Hand value without aces: ", acelessTotalVal)
+        if acelessTotalVal >= 10:
+            return GameActions.STAND.value
+        return GameActions.HIT.value
 
 # See https://www.blackjackapprenticeship.com/wp-content/uploads/2018/08/BJA_Basic_Strategy.jpg for charts
 class BasicStrategy(StrategyInterface):
@@ -100,7 +111,7 @@ class BasicStrategy(StrategyInterface):
 
     # Contains the optimal hit/stand/double strategy for the player's cards against the dealer's upcard
     # according to Basic Strategy principles.
-        #     2    3    4    5    6    7    8    9   10    A
+        #     A    2    3    4    5    6    7    8    9    10
     hardTotals = {
         17: ["S", "S", "S", "S", "S", "S", "S", "S", "S", "S"],
         16: ["H", "S", "S", "S", "S", "S", "H", "H", "H", "H"],
@@ -129,7 +140,12 @@ class BasicStrategy(StrategyInterface):
         return self.hardTotals.get(handValue)[dealerUpcard - 2]
 
     def shouldSplitPair(self, pairValue: int, dealerUpcard: int):
-        return self.pairSplitting.get(pairValue)[dealerUpcard - 2]
+        print("shouldSplitPair() -> Pair Value: ", pairValue, " | Dealer shows: ", dealerUpcard)
+        if dealerUpcard == 11:
+            dealerUpcard = 1
+        if pairValue == 11:
+            return self.pairSplitting.get(1)[dealerUpcard - 1]
+        return self.pairSplitting.get(pairValue)[dealerUpcard - 1]
     
     # Handles soft total deviations in the event that players cannot double on a soft total.
     def softTotalDeviations(self):

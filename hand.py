@@ -22,6 +22,7 @@ class Hand:
         self.betSize = betSize
         self.insuranceBet = 0
         self.isInsured = False
+        self.finalHandValue = 0
     
     def __iter__(self):
         return HandIterator(self.cards)
@@ -59,14 +60,14 @@ class Hand:
         if len(self.cards) == 1:
             return False
         for card in self.cards:
-            if card.getValue() == 1:
+            if card.getValue() == 11:
                 return True
         return False
     
     def getAcesCount(self):
         numAces = 0
         for card in self.cards:
-            if card.getValue() == 1:
+            if card.getValue() == 11:
                 numAces += 1
         return numAces
     
@@ -94,5 +95,9 @@ class Hand:
             sum += card.getValue()
         return sum
     
+    def setFinalHandValue(self, value):
+        print("Hand has final value of:", value)
+        self.finalHandValue = value
+
     def splitHand(self):
         return self.cards.pop()

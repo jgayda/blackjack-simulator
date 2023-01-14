@@ -13,10 +13,11 @@ class HouseRules:
         print("HOUSE RULES:")
         print("Dealer stands on ", standValue, " | Double after split offered? ", DASoffered, " | Players can re-split aces? ", RSAoffered, " Surrender offered? ", LSoffered)
 class Dealer:
-    def __init__(self, penetration, shoeSize, houseRules):
+    def __init__(self, penetration, shoeSize, houseRules, strategy):
         self.penetration = penetration
         self.shoe = Shoe(shoeSize)
         self.houseRules: HouseRules = houseRules
+        self.strategy = strategy
         self.hand: Hand = None
         self.upcard: Card = None
         self.losses = 0
@@ -45,7 +46,7 @@ class Dealer:
             print("Length of discard and draw piles: ", len(self.shoe.discard), " + ", len(self.shoe.drawPile), " = ", len(self.shoe.discard)+len(self.shoe.drawPile))
             print("Should be equal to: ", self.shoe.numDecks * 52)
         return (len(self.shoe.discard) + len(self.shoe.drawPile) == self.shoe.numDecks * 52)
-    
+
     def handlePayout(self, betSize: int, isBlackjack):
         if isBlackjack:
             self.losses += betSize * 1.5
@@ -54,7 +55,7 @@ class Dealer:
         return betSize
     
     def insuranceIsOffered(self):
-        return self.upcard.getValue() == 1
+        return self.upcard.getValue() == 11
 
     def setUpCard(self, upcard: Card):
         self.upcard = upcard
