@@ -11,7 +11,6 @@ class HiLoCount:
             self.runningCount = self.runningCount - 1
     
     def getTrueCount(self, decksRemaining: float) -> int:
-        print("count.py -> Decks remaining:", decksRemaining, " | Running Count:", self.runningCount, " | True Count: ", round(self.runningCount / decksRemaining))
         return round(self.runningCount / decksRemaining)
     
     def resetCount(self):

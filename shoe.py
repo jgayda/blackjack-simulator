@@ -20,15 +20,9 @@ class Shoe:
     def getDecksRemaining(self):
         penetration = self.getPenetration()
         decksRemaining = (1 - penetration) * self.numDecks
-        print("Decks remaining: ", round(decksRemaining * 2) / 2)
         return round(decksRemaining * 2) / 2
-        # decksDiscarded = len(self.discard) % 52
-        # return self.numDecks - decksDiscarded
     
     def getPenetration(self):
-        print("Discard pile: ", len(self.discard))
-        print("Draw Pile: ", len(self.drawPile))
-        print("Deck penetration: ", len(self.discard) / (self.numDecks * 52))
         return len(self.discard) / (self.numDecks * 52)
 
     def printDeck(self):
