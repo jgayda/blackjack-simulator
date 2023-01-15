@@ -56,13 +56,16 @@ class Hand:
         card2Rank = self.cards[1].getRank()
         return card1Rank == card2Rank
     
-    def isSoftTotal(self):
+    def isSoftTotal(self, softTotalDeductionCount):
         if len(self.cards) == 1:
             return False
-        for card in self.cards:
-            if card.getValue() == 11:
-                return True
-        return False
+        numAces = self.getAcesCount()
+        if (softTotalDeductionCount == numAces):
+            return False
+        # for card in self.cards:
+        #     if card.getValue() == 11:
+        #         return True
+        return numAces != 0
     
     def getAcesCount(self):
         numAces = 0
@@ -74,12 +77,12 @@ class Hand:
     def getInitialBet(self):
         return self.betSize
 
-    def getSoftTotalAcelessValue(self):
+    def getSoftTotalAcelessValue(self, softAcesCount):
         total = 0
         for card in self.cards:
-            if card.getValue() is not 1:
+            if card.getValue() is not 11:
                 total += card.getValue()
-        return total
+        return total + softAcesCount
     
     def printHand(self, playerName):
         print("Player: ", playerName, " has hand:")
