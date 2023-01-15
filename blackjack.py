@@ -50,11 +50,19 @@ class GameData:
     def plotBankrollTime(self):
         numHands = self.game.numHands
         playerNames = []
+        fig, ax = plt.subplots()
         for player in self.players:
-            plt.plot([item for item in range(1, len(player.bankrollSnapshots) + 1)], player.bankrollSnapshots)
+            ax.plot([item for item in range(1, len(player.bankrollSnapshots) + 1)], player.bankrollSnapshots, label=player.name)
             print("Player ", player.name, " has ", len(player.bankrollSnapshots), " bankroll snapshots")
             playerNames.append(player.name)
-        plt.legend(playerNames, loc="best")
+        ax.set_title("Plot of players' bankroll over time in a blackjack game of "+str(numHands)+" rounds")
+        ax.set_xlabel("Round number")
+        ax.set_ylabel("Bankroll ($)")
+        
+        # Add the legend
+        pos = ax.get_position()
+        ax.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
+        ax.legend(loc='center right', bbox_to_anchor=(1.25, 0.5), title="Players")
         plt.show()
 
 class BlackJackGame:
@@ -66,23 +74,31 @@ class BlackJackGame:
 
         print("Dealer has rules: ")
         print("Deck Penetration %: ", penetration, " | Minimum table bet: $", tableMin)
-        self.dealer = Dealer(penetration, shoeSize, houseRules, CasinoStrategy(houseRules, isCounting=False))
+        self.dealer = Dealer(penetration, shoeSize, houseRules, CasinoStrategy(houseRules, isCounting=False, accuracy=1))
 
-        self.players = [Player("1-6 Spread & Counting", bankroll, BasicStrategy(houseRules, isCounting=True), spread1_6()), 
-                        Player("1-6 Spread & No Counting", bankroll, BasicStrategy(houseRules, isCounting=False), spread1_6()),
-                        Player("1-50 Spread & Counting", bankroll, BasicStrategy(houseRules, isCounting=True), spread1_50()),
-                        Player("1-50 Spread & No Counting", bankroll, BasicStrategy(houseRules, isCounting=False), spread1_50()),
-                        Player("Random", bankroll, RandomStrategy(houseRules, isCounting=False), spread1_6())]
+        self.players = [Player("Counting with 1-6 Bet Spread", bankroll, BasicStrategy(houseRules, isCounting=True, accuracy=1), spread1_6()),
+                        Player("Counting with 1-50 Bet Spread", bankroll, BasicStrategy(houseRules, isCounting=True, accuracy=1), spread1_50()),
+                        Player("Perfect Basic Strategy", bankroll, BasicStrategy(houseRules, isCounting=False, accuracy=1), spread1_6()),
+                        Player('99% Accurate Basic Strategy', bankroll, BasicStrategy(houseRules, isCounting=False, accuracy=0.99), spread1_50()),
+                        Player('95% Accurate Basic Strategy', bankroll, BasicStrategy(houseRules, isCounting=False, accuracy=0.95), spread1_50()),
+                        Player('75% Accurate Basic Strategy', bankroll, BasicStrategy(houseRules, isCounting=False, accuracy=0.75), spread1_50()),
+                        Player('Casino Rules', bankroll, CasinoStrategy(houseRules, isCounting=False, accuracy=1), spread1_6()),
+                        Player("Random", bankroll, RandomStrategy(houseRules, isCounting=False, accuracy=1), spread1_6())]
         print("There are ", len(self.players), " players in the game.")
     
     def clearAllCards(self, players: List[Player]):
         # Collect the cards from each player before moving onto the next round and put the cards in the
         # discard pile
         for player in players:
-            allHands = player.hands
-            for hand in allHands:
+            print("clearAllCards() -> ", player.name, " has ", len(player.hands), " hands before clear.")
+            print("Player hands: ", player.hands)
+            for hand in player.hands:
+                print("Discarding hand:", hand)
+                hand.printHand(player.name)
                 self.dealer.discardPlayersCards(hand, player.name)
-                player.clearHand(hand)
+            
+            player.clearAllHands()
+            print("clearAllCards() -> ", player.name, " has ", len(player.hands), " hands after clear.")
         
         # Discard the dealer's cards and move them to the discard pile
         self.dealer.discardDealersCards()
@@ -246,14 +262,17 @@ class BlackJackGame:
             self.handlePlayerBlackjack(player, dealtHand)
         else:
             # First, determine if we have a pair and if we should split:
-            if dealtHand.isPair():
-                self.handleSplitPair(player, dealtHand, dealerUpcard, count)
+            # if dealtHand.isPair():
+            #     self.handleSplitPair(player, dealtHand, dealerUpcard, count)
             
             # It's now possible that we have two hands that we need to simulate as the player could have split the pair.
             # Instatiate a new dealtHands object:
+            # handQueue = deque()
+            # for hand in player.hands:
+            #     handQueue.append(hand)
+
             handQueue = deque()
-            for hand in player.hands:
-                handQueue.append(hand)
+            handQueue.append(player.getStartingHand())
 
             while len(handQueue) > 0:
                 hand = handQueue.pop()
@@ -269,16 +288,17 @@ class BlackJackGame:
                             print("BUST! Value is: ", hand.getHandValue() - softTotalDeductionCount * 10)
                             self.handleBustHand(player, hand)
                             break
-                    if hand.isSoftTotal(softTotalDeductionCount) and softTotalDeductionCount < hand.getAcesCount():
-                        print("We have a soft total...")
-                        action = player.strategy.softTotalOptimalDecision(hand, dealerUpcard.getValue(), softTotalDeductionCount)
-                    elif hand.isPair():
+                    if hand.isPair():
                         print("We have a pair...")
                         splitHand = self.handleSplitPair(player, hand, dealerUpcard, count)
                         if splitHand is not None:
                             handQueue.append(splitHand)
                             handQueue.append(hand)
-                        break
+                            break
+                    
+                    if hand.isSoftTotal(softTotalDeductionCount) and softTotalDeductionCount < hand.getAcesCount():
+                        print("We have a soft total...")
+                        action = player.strategy.softTotalOptimalDecision(hand, dealerUpcard.getValue(), softTotalDeductionCount)
                     else:
                         # Get hard total value
                         print("We have a hard total of ", hand.getHandValue()- softTotalDeductionCount * 10)
@@ -299,7 +319,7 @@ class BlackJackGame:
     def printRoundInformation(self, players: List[Player], count: HiLoCount, roundNumber: int):
         print(" - - - - - - - - - - -")
         print(" - - - - - - - - - - -")
-        print("Round: ", round, " Running Count: ", count.runningCount)
+        print("Round: ", roundNumber, " Running Count: ", count.runningCount)
         print(" - - - - - - - - - - -")
         print(" - - - - - - - - - - -")
         for player in players:
