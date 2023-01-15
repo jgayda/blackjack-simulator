@@ -23,6 +23,9 @@ class Player:
         self.hands.remove(hand)
         #self.hands.clear()
     
+    def clearAllHands(self):
+        self.hands.clear()
+    
     def getStartingHand(self):
         return self.hands[0]
     

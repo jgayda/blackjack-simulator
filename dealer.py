@@ -42,10 +42,11 @@ class Dealer:
         return self.shoe.getPenetration() >= self.penetration
     
     def ensureDeckCompleteness(self, isVerbose):
-        if isVerbose:
+        if (len(self.shoe.discard) + len(self.shoe.drawPile) != self.shoe.numDecks * 52):
             print("Length of discard and draw piles: ", len(self.shoe.discard), " + ", len(self.shoe.drawPile), " = ", len(self.shoe.discard)+len(self.shoe.drawPile))
             print("Should be equal to: ", self.shoe.numDecks * 52)
-        return (len(self.shoe.discard) + len(self.shoe.drawPile) == self.shoe.numDecks * 52)
+            raise SystemExit('ERROR: There are cards missing! ')
+        return True
 
     def handlePayout(self, betSize: int, isBlackjack):
         if isBlackjack:

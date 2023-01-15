@@ -23,11 +23,12 @@ class StrategyInterface:
         pass
 
 # RandomStrategy represents the strategy of a player who will leave every single game decision up to chance.
-# This goes without saying, do not attempt this strategy in a real life casino.
+# This goes without saying, do not attempt this strategy in a real life casino :)
 class RandomStrategy(StrategyInterface):
-    def __init__(self, houseRules, isCounting):
+    def __init__(self, houseRules, isCounting, accuracy):
         self.houseRules = houseRules
         self.isCounting = isCounting
+        self.accuracy = accuracy
         self.name = "random"
     
     def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard: int, numSoftAces):
@@ -45,10 +46,11 @@ class RandomStrategy(StrategyInterface):
 # CasinoStrategy represents the strategy of a player who will play exactly how the casino plays. In other words,
 # if the dealer was an actual player at the table this is who they'd be. 
 class CasinoStrategy(StrategyInterface):
-    def __init__(self, houseRules: HouseRules, isCounting):
+    def __init__(self, houseRules: HouseRules, isCounting, accuracy):
         self.name = "casino"
         self.houseRules = houseRules
         self.isCounting = isCounting
+        self.accuracy = accuracy
     
     def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard, numSoftAces):
         handValue = hand.getHandValue() - numSoftAces * 10
@@ -64,19 +66,20 @@ class CasinoStrategy(StrategyInterface):
     def softTotalOptimalDecision(self, hand: Hand, dealerUpcard: int, softTotalDeductionCount) -> GameActions:
         acelessTotalVal = hand.getSoftTotalAcelessValue(softTotalDeductionCount)
         print("Hand value without aces: ", acelessTotalVal)
-        if acelessTotalVal >= 10:
+        if acelessTotalVal >= 6:
             return GameActions.STAND.value
         return GameActions.HIT.value
     
-    def willTakeInsurance(self) -> None:
+    def willTakeInsurance(self, runningCount) -> None:
         # Casinos never take insurance!
         return False
 
 # See https://www.blackjackapprenticeship.com/wp-content/uploads/2018/08/BJA_Basic_Strategy.jpg for charts
 class BasicStrategy(StrategyInterface):
-    def __init__(self, houseRules: HouseRules, isCounting):
+    def __init__(self, houseRules: HouseRules, isCounting, accuracy):
         self.houseRules = houseRules
         self.isCounting = isCounting
+        self.accuracy = accuracy
         if self.houseRules.doubleAfterSplitOffered:
             self.DASdeviations()
         if not self.houseRules.doubleOnSoftTotal:
@@ -136,6 +139,8 @@ class BasicStrategy(StrategyInterface):
         self.pairSplitting.update({2: [False, True, True, True,  True,  True,  True,  False, False, False]})
     
     def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard: int, numSoftAces):
+        if random.randrange(0,1) > self.accuracy:
+            return random.choice([GameActions.HIT.value, GameActions.STAND.value, GameActions.DOUBLE.value])
         handValue = hand.getHandValue() - numSoftAces * 10
         if handValue <= 8:
             return GameActions.HIT.value
@@ -162,10 +167,14 @@ class BasicStrategy(StrategyInterface):
         self.softTotals.update({2: ["H", "H", "H", "H", "H", "H", "H", "H", "H", "H"]})
     
     def softTotalOptimalDecision(self, hand: Hand, dealerUpcard: int, softTotalDeductionCount):
+        if random.randrange(0,1) > self.accuracy:
+            return random.choice([GameActions.HIT.value, GameActions.STAND.value, GameActions.DOUBLE.value])
         acelessTotalVal = hand.getSoftTotalAcelessValue(softTotalDeductionCount)
         print("Hand value without aces: ", acelessTotalVal)
-        if acelessTotalVal >= 10:
+        if acelessTotalVal >= 8:
             return GameActions.STAND.value
+        if dealerUpcard == 11:
+            dealerUpcard = 1
         chartVal: GameActions = self.softTotals.get(acelessTotalVal)[dealerUpcard - 1]
         return chartVal
     
