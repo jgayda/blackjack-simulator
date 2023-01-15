@@ -19,8 +19,9 @@ class Player:
     def canPlay(self):
         return len(self.hands) > 0
     
-    def clearHand(self):
-        self.hands.clear()
+    def clearHand(self, hand: Hand):
+        self.hands.remove(hand)
+        #self.hands.clear()
     
     def getStartingHand(self):
         return self.hands[0]
@@ -31,9 +32,11 @@ class Player:
         print(self.hands)
         return splitHand
     
+    def takeBankrollSnapshot(self):
+        self.bankrollSnapshots.append(self.bankroll)
+    
     def updateBankroll(self, amount):
         self.bankroll = self.bankroll + amount
-        self.bankrollSnapshots.append(self.bankroll)
     
     def updateHand(self, hand):
         self.hands.append(hand)
