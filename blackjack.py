@@ -19,7 +19,8 @@ import numpy as np
 @click.option('-t', '--tablemin', default=10, help='Determines the minimum table bet. Default is 5.')
 @click.option('-p', '--penetration', default=0.84, help='Dictates the deck penetration by the dealer. Default is 0.84 which means that the dealer will penetrate 84 percent of the shoe before re-shuffling')
 @click.option('-d', '--dealersettings', default=[17, True, True, True, True], help='Assigns the dealer rules.')
-def main(shoesize, bankroll, hands, tablemin, penetration, dealersettings):
+@click.option('-v', '--verbose', default=False, help='Prints all player, hand, and game information.')
+def main(shoesize, bankroll, hands, tablemin, penetration, dealersettings, verbose):
     print("Running blackjack simulation with variables:")
     print("Shoe size: ", shoesize, " | Bankroll: ", bankroll, " | Number of hands to simulate: ", hands, " | Minimum Table Bet: ", tablemin)
     houseRules = HouseRules(standValue=dealersettings[0], DASoffered=dealersettings[1], RSAoffered=dealersettings[2], LSoffered=dealersettings[3], doubleOnSoftTotal=dealersettings[4])
@@ -51,6 +52,7 @@ class GameData:
         playerNames = []
         for player in self.players:
             plt.plot([item for item in range(1, len(player.bankrollSnapshots) + 1)], player.bankrollSnapshots)
+            print("Player ", player.name, " has ", len(player.bankrollSnapshots), " bankroll snapshots")
             playerNames.append(player.name)
         plt.legend(playerNames, loc="best")
         plt.show()
@@ -80,7 +82,7 @@ class BlackJackGame:
             allHands = player.hands
             for hand in allHands:
                 self.dealer.discardPlayersCards(hand, player.name)
-            player.clearHand()
+                player.clearHand(hand)
         
         # Discard the dealer's cards and move them to the discard pile
         self.dealer.discardDealersCards()
@@ -122,13 +124,14 @@ class BlackJackGame:
     
     def getTrueCount(self, count: HiLoCount):
         decksRemaining = self.dealer.shoe.getDecksRemaining()
-        print("TYPE OF COUNT", type(count))
         trueCount = count.getTrueCount(decksRemaining)
-        print("TRUE COUNT: ", trueCount)
         return trueCount
     
     def handleBustHand(self, player: Player, hand: Hand):
         print("Hand went bust.")
+        self.dealer.updateGains(hand.getInitialBet())
+        self.dealer.discardPlayersCards(hand, player.name)
+        player.clearHand(hand)
         
 
     def handleDealerBlackjack(self, players: List[Player], count: HiLoCount):
@@ -163,7 +166,7 @@ class BlackJackGame:
         print("Blackjack! Initial bet: $", hand.getInitialBet(), " Payout: $", payout)
         player.updateBankroll(hand.betSize + payout)
         self.dealer.discardPlayersCards(hand, player.name)
-        player.clearHand()
+        player.clearHand(hand)
     
     def handleRemainingHands(self, players: List[Player]):
         dealerValue = self.dealer.hand.finalHandValue
@@ -213,12 +216,12 @@ class BlackJackGame:
                 else:
                     print("Dealer busts! All players are rewarded")
                     break
-            if self.dealer.hand.isSoftTotal() and softTotalDeductionCount < self.dealer.hand.getAcesCount():
+            if self.dealer.hand.isSoftTotal(softTotalDeductionCount) and softTotalDeductionCount < self.dealer.hand.getAcesCount():
                 print("Dealer has soft total.")
-                action = self.dealer.strategy.softTotalOptimalDecision(self.dealer.hand, softTotalDeductionCount)
+                action = self.dealer.strategy.softTotalOptimalDecision(self.dealer.hand, self.dealer.upcard, softTotalDeductionCount)
             else:
                 print("Dealer has hard total...")
-                action = self.dealer.strategy.hardTotalOptimalDecision(self.dealer.hand, softTotalDeductionCount)
+                action = self.dealer.strategy.hardTotalOptimalDecision(self.dealer.hand, self.dealer.upcard.getValue(), softTotalDeductionCount)
             
             if (action == GameActions.HIT.value):
                 print("Dealer hits...")
@@ -266,9 +269,9 @@ class BlackJackGame:
                             print("BUST! Value is: ", hand.getHandValue() - softTotalDeductionCount * 10)
                             self.handleBustHand(player, hand)
                             break
-                    if hand.isSoftTotal() and softTotalDeductionCount < hand.getAcesCount():
+                    if hand.isSoftTotal(softTotalDeductionCount) and softTotalDeductionCount < hand.getAcesCount():
                         print("We have a soft total...")
-                        action = player.strategy.softTotalOptimalDecision(hand, dealerUpcard.getValue())
+                        action = player.strategy.softTotalOptimalDecision(hand, dealerUpcard.getValue(), softTotalDeductionCount)
                     elif hand.isPair():
                         print("We have a pair...")
                         splitHand = self.handleSplitPair(player, hand, dealerUpcard, count)
@@ -293,7 +296,12 @@ class BlackJackGame:
                     
         print(player.name, " has played all of their hands!")
     
-    def printPlayersBankroll(self, players: List[Player]):
+    def printRoundInformation(self, players: List[Player], count: HiLoCount, roundNumber: int):
+        print(" - - - - - - - - - - -")
+        print(" - - - - - - - - - - -")
+        print("Round: ", round, " Running Count: ", count.runningCount)
+        print(" - - - - - - - - - - -")
+        print(" - - - - - - - - - - -")
         for player in players:
             prevIndex = len(player.bankrollSnapshots) - 2
             print(player.name, ' has a bankroll of $', player.bankroll, " (Prev hand: $", player.bankrollSnapshots[prevIndex], ")")
@@ -308,24 +316,14 @@ class BlackJackGame:
 
         for player in self.players:
             playersInGame.append(player)
-            print("Player: ", player.name, " has joined the round.")
+            print("Player: ", player.name, " has joined the game.")
 
         count = HiLoCount()
 
         # Play the game! 
         while (handCount <= self.numHands and len(playersInGame) > 0):
-            print(" - - - - - - - - - - -")
-            print(" - - - - - - - - - - -")
-            print("Round: ", handCount, " Count: ", count.runningCount)
-            print(" - - - - - - - - - - -")
-            print(" - - - - - - - - - - -")
-
-            # If the count gets too negative, the card counters will sit out the hand.
-            # for player in playersInGame:
-            #     if player.strategy.isCounting and self.getTrueCount(count) < -1:
-            #         playersInGame.remove(player)
-            #         playersInBreak.append(player)
-            
+            if isVerbose:
+                self.printRoundInformation(playersInGame, count, handCount)
             # Deal out the players' and dealer's cards
             self.dealPlayersHands(playersInGame, count)
             self.dealDealersHand(count)
@@ -354,19 +352,15 @@ class BlackJackGame:
 
             # Used to debug deck sizes to ensure that no cards are being lost:
             self.dealer.ensureDeckCompleteness(isVerbose=True)
-
-            # for player in playersInBreak:
-            #     playersInBreak.remove(player)
-            #     playersInGame.append(player)
             
-            if isVerbose:
-                self.printPlayersBankroll(playersInGame)
             # If we have exceeded or reached optimal shoe penetration, reset the shoe and the running count
             if self.dealer.deckPenetrationTooHigh():
                 self.dealer.shuffle()
                 count.resetCount()
             
+            
             for player in playersInGame:
+                player.takeBankrollSnapshot()
                 if player.bankroll < self.tableMin:
                     print(player.name, " has gone broke and is out of the game.")
                     playersInGame.remove(player)
