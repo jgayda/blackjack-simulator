@@ -42,7 +42,7 @@ class Hand:
             return False
         card1Value = self.cards[0].getValue()
         card2Value = self.cards[1].getValue()
-        if (card1Value == 1 or card2Value == 1) and (card1Value == 10 or card2Value == 10):
+        if card1Value + card2Value == 21:
             return True
         return False
     

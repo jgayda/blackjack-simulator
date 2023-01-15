@@ -5,7 +5,7 @@ from count import HiLoCount
 from hand import Hand
 from card import Card, CardValue
 from dealer import Dealer, HouseRules
-from strategies import BasicStrategy, CasinoStrategy, GameActions
+from strategies import BasicStrategy, CasinoStrategy, RandomStrategy, GameActions
 from bet import spread1_50, spread1_6
 from typing import List
 from collections import deque
@@ -26,6 +26,7 @@ def main(shoesize, bankroll, hands, tablemin, penetration, dealersettings):
     game = BlackJackGame(shoesize, bankroll, hands, tablemin, penetration, houseRules)
     game.startGame(isVerbose=True)
     gamedata = GameData(game)
+    gamedata.getDealerStatistics()
     gamedata.plotBankrollTime()
 
 class GameData:
@@ -38,12 +39,15 @@ class GameData:
     
     def getPlayerBankrollSnapshots(self):
         for player in self.players:
-            print(player.bankrollSnapshots)
             self.bankrollData.update({player.name: player.bankrollSnapshots})
+    
+    def getDealerStatistics(self):
+        print(" - - - - - ")
+        print("Dealer losses: $", self.dealer.losses, " | Dealer gains: $", self.dealer.gains, " | Profit: $", self.dealer.gains - self.dealer.losses)
+        print(" - - - - - ")
     
     def plotBankrollTime(self):
         numHands = self.game.numHands
-        roundAxis = [item for item in range(1, len(self.bankrollData.get("Optimal")) + 1)]
         playerNames = []
         for player in self.players:
             plt.plot([item for item in range(1, len(player.bankrollSnapshots) + 1)], player.bankrollSnapshots)
@@ -62,9 +66,11 @@ class BlackJackGame:
         print("Deck Penetration %: ", penetration, " | Minimum table bet: $", tableMin)
         self.dealer = Dealer(penetration, shoeSize, houseRules, CasinoStrategy(houseRules, isCounting=False))
 
-        self.players = [Player("Optimal", bankroll, BasicStrategy(houseRules, isCounting=True), spread1_6()), 
-                        Player("Sub-Optimal I", bankroll, BasicStrategy(houseRules, isCounting=False), spread1_6()),
-                        Player("Random", bankroll, BasicStrategy(houseRules, isCounting=True), spread1_6())]
+        self.players = [Player("1-6 Spread & Counting", bankroll, BasicStrategy(houseRules, isCounting=True), spread1_6()), 
+                        Player("1-6 Spread & No Counting", bankroll, BasicStrategy(houseRules, isCounting=False), spread1_6()),
+                        Player("1-50 Spread & Counting", bankroll, BasicStrategy(houseRules, isCounting=True), spread1_50()),
+                        Player("1-50 Spread & No Counting", bankroll, BasicStrategy(houseRules, isCounting=False), spread1_50()),
+                        Player("Random", bankroll, RandomStrategy(houseRules, isCounting=False), spread1_6())]
         print("There are ", len(self.players), " players in the game.")
     
     def clearAllCards(self, players: List[Player]):

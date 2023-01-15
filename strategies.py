@@ -19,7 +19,7 @@ class StrategyInterface:
     def softTotalOptimalDecision(self, hand: Hand, dealerUpcard: int) -> GameActions:
         pass
     
-    def willTakeInsurance(self) -> None:
+    def willTakeInsurance(self, runningCount) -> None:
         pass
 
 # RandomStrategy represents the strategy of a player who will leave every single game decision up to chance.
@@ -31,15 +31,15 @@ class RandomStrategy(StrategyInterface):
         self.name = "random"
     
     def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard: int, numSoftAces):
-        return random.choice([GameActions.HIT, GameActions.STAND, GameActions.DOUBLE])
+        return random.choice([GameActions.HIT.value, GameActions.STAND.value, GameActions.DOUBLE.value])
     
     def shouldSplitPair(self, pairValue: int, dealerUpcard: int) -> bool:
         return bool(random.getrandbits(1))
     
     def softTotalOptimalDecision(self, hand: Hand, dealerUpcard: int) -> GameActions:
-        return random.choice([GameActions.HIT, GameActions.STAND, GameActions.DOUBLE])
+        return random.choice([GameActions.HIT.value, GameActions.STAND.value, GameActions.DOUBLE.value])
     
-    def willTakeInsurance(self):
+    def willTakeInsurance(self, runningCount):
         return bool(random.getrandbits(1))
 
 # CasinoStrategy represents the strategy of a player who will play exactly how the casino plays. In other words,
@@ -67,6 +67,10 @@ class CasinoStrategy(StrategyInterface):
         if acelessTotalVal >= 10:
             return GameActions.STAND.value
         return GameActions.HIT.value
+    
+    def willTakeInsurance(self) -> None:
+        # Casinos never take insurance!
+        return False
 
 # See https://www.blackjackapprenticeship.com/wp-content/uploads/2018/08/BJA_Basic_Strategy.jpg for charts
 class BasicStrategy(StrategyInterface):
