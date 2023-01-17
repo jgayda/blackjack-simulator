@@ -38,7 +38,7 @@ class Hand:
         self.isInsured = True
     
     def isBlackjack(self):
-        if len(self.cards) is not 2:
+        if len(self.cards) != 2:
             return False
         card1Value = self.cards[0].getValue()
         card2Value = self.cards[1].getValue()
@@ -50,7 +50,7 @@ class Hand:
         return self.getHandValue() > 21
 
     def isPair(self):
-        if len(self.cards) is not 2: 
+        if len(self.cards) != 2: 
             return False
         card1Rank = self.cards[0].getRank()
         card2Rank = self.cards[1].getRank()
@@ -62,9 +62,6 @@ class Hand:
         numAces = self.getAcesCount()
         if (softTotalDeductionCount == numAces):
             return False
-        # for card in self.cards:
-        #     if card.getValue() == 11:
-        #         return True
         return numAces != 0
     
     def getAcesCount(self):
@@ -80,7 +77,7 @@ class Hand:
     def getSoftTotalAcelessValue(self, softAcesCount):
         total = 0
         for card in self.cards:
-            if card.getValue() is not 11:
+            if card.getValue() != 11:
                 total += card.getValue()
         return total + softAcesCount
     
@@ -99,7 +96,6 @@ class Hand:
         return sum
     
     def setFinalHandValue(self, value):
-        print("Hand has final value of:", value)
         self.finalHandValue = value
 
     def splitHand(self):

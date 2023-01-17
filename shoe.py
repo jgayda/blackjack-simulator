@@ -1,9 +1,10 @@
 from card import Card, Suit
 import random
 class Shoe:
-    def __init__(self, numDecks):
+    def __init__(self, numDecks, isVerbose):
         assert numDecks >= 1
         self.numDecks = numDecks
+        self.isVerbose = isVerbose
         self.discard = []
         self.drawPile = []
         for deck in range(0, numDecks):
@@ -30,7 +31,7 @@ class Shoe:
             card.printCard()
     
     def resetShoe(self):
-        print("Resetting shoe...")
+        if self.isVerbose: print("Resetting shoe...")
         for card in self.discard:
             self.drawPile.append(card)
         self.discard = []

@@ -2,14 +2,16 @@ from hand import Hand
 from typing import List
 from bet import spread1_50, spread1_6
 class Player:
-    def __init__(self, name, initialBankroll, strategy, betting):
-        print("Creating new player: ", name)
+    def __init__(self, name, initialBankroll, strategy, betting, isVerbose):
+        if isVerbose: print("Creating new player: ", name)
         self.name = name
         self.bankroll = initialBankroll
         self.bankrollSnapshots = [initialBankroll]
         self.strategy = strategy
         self.betting = betting
+        self.isVerbose = isVerbose
         self.hands: List[Hand] = []
+        self.winData = [0, 0, 0] # [Wins, Losses, Draws]
     
     def calculateBetSize(self, tableMin, trueCount):
         if self.strategy.isCounting:
@@ -21,7 +23,6 @@ class Player:
     
     def clearHand(self, hand: Hand):
         self.hands.remove(hand)
-        #self.hands.clear()
     
     def clearAllHands(self):
         self.hands.clear()
@@ -32,7 +33,6 @@ class Player:
     def splitPair(self, hand: Hand):
         splitHand = Hand([hand.splitHand()], hand.getInitialBet())
         self.updateHand(splitHand)
-        print(self.hands)
         return splitHand
     
     def takeBankrollSnapshot(self):

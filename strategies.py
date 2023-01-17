@@ -54,7 +54,6 @@ class CasinoStrategy(StrategyInterface):
     
     def hardTotalOptimalDecision(self, hand: Hand, dealerUpcard, numSoftAces):
         handValue = hand.getHandValue() - numSoftAces * 10
-        print("hardTotalOptimalDecision() -> Hard total value: ", hand.getHandValue() - numSoftAces * 10)
         if handValue < 17:
             return GameActions.HIT.value
         return GameActions.STAND.value
@@ -65,7 +64,6 @@ class CasinoStrategy(StrategyInterface):
     
     def softTotalOptimalDecision(self, hand: Hand, dealerUpcard: int, softTotalDeductionCount) -> GameActions:
         acelessTotalVal = hand.getSoftTotalAcelessValue(softTotalDeductionCount)
-        print("Hand value without aces: ", acelessTotalVal)
         if acelessTotalVal >= 6:
             return GameActions.STAND.value
         return GameActions.HIT.value
@@ -149,7 +147,6 @@ class BasicStrategy(StrategyInterface):
         return self.hardTotals.get(handValue)[dealerUpcard - 2]
 
     def shouldSplitPair(self, pairValue: int, dealerUpcard: int):
-        print("shouldSplitPair() -> Pair Value: ", pairValue, " | Dealer shows: ", dealerUpcard)
         if dealerUpcard == 11:
             dealerUpcard = 1
         if pairValue == 11:
@@ -170,7 +167,6 @@ class BasicStrategy(StrategyInterface):
         if random.randrange(0,1) > self.accuracy:
             return random.choice([GameActions.HIT.value, GameActions.STAND.value, GameActions.DOUBLE.value])
         acelessTotalVal = hand.getSoftTotalAcelessValue(softTotalDeductionCount)
-        print("Hand value without aces: ", acelessTotalVal)
         if acelessTotalVal >= 8:
             return GameActions.STAND.value
         if dealerUpcard == 11:

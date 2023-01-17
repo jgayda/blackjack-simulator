@@ -3,7 +3,7 @@ class BetSpreadInterface:
         pass
 class spread1_6(BetSpreadInterface):
     def __init__(self):
-        print("Initializing 1-6 Bet Spread")
+        self.name = "1-6 Bet Spread"
     
     # 1-6 Bet Spread
     def getBetSpreads(self, trueCount, tableMin):
@@ -22,7 +22,7 @@ class spread1_6(BetSpreadInterface):
 
 class spread1_50(BetSpreadInterface):
     def __init__(self):
-        print("Initializing 1-50 Bet Spread")
+        self.name = "1-50 Bet Spread"
     
     def getBetSpreads(self, trueCount: int, tableMin: int):
         if trueCount <= 0: return tableMin
