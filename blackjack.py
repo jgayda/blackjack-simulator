@@ -33,6 +33,7 @@ def main(shoesize, bankroll, hands, tablemin, penetration, dealersettings, verbo
     game.startGame()
     gamedata = GameData(game)
     gamedata.getDealerStatistics()
+    gamedata.getPlayerStatistics()
     gamedata.plotBankrollTime()
 
 class GameData:
@@ -52,13 +53,26 @@ class GameData:
         print("Dealer losses: $", self.dealer.losses, " | Dealer gains: $", self.dealer.gains, " | Profit: $", self.dealer.gains - self.dealer.losses)
         print(" - - - - - ")
     
+    def getPlayerStatistics(self):
+        for player in self.players:
+            handsPlayed = len(player.bankrollSnapshots) - 1
+            winRate = player.handData[0] / handsPlayed * 100
+            loseRate = player.handData[1] / handsPlayed * 100
+            drawRate = player.handData[2] / handsPlayed * 100
+            endBankroll = player.bankroll
+            initialBankroll = player.bankrollSnapshots[0]
+            diff = endBankroll - initialBankroll
+            earningsPerHand = diff / handsPlayed
+            percentChange = (endBankroll - initialBankroll) / initialBankroll * 100
+            print(player.name, " | Win %", winRate, " | Lose %", loseRate, " | Draw %", drawRate)
+            print("Earnings: ", diff, '(Percent Increase %', percentChange, ") | Average payout per hand: $", earningsPerHand)
+    
     def plotBankrollTime(self):
         numHands = self.game.numHands
         playerNames = []
         fig, ax = plt.subplots()
         for player in self.players:
             ax.plot([item for item in range(1, len(player.bankrollSnapshots) + 1)], player.bankrollSnapshots, label=player.name)
-            print("Player ", player.name, " has ", len(player.bankrollSnapshots), " bankroll snapshots")
             playerNames.append(player.name)
         ax.set_title("Plot of players' bankroll over time in a blackjack game of "+str(numHands)+" rounds")
         ax.set_xlabel("Round number")
@@ -67,7 +81,8 @@ class GameData:
         # Add the legend
         pos = ax.get_position()
         ax.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
-        ax.legend(loc='center right', bbox_to_anchor=(1.25, 0.5), title="Players")
+        ax.legend(loc='center right', bbox_to_anchor=(1.05, 0.5), title="Players")
+        plt.tight_layout()
         plt.show()
 
 class BlackJackGame:

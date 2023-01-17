@@ -11,7 +11,7 @@ class Player:
         self.betting = betting
         self.isVerbose = isVerbose
         self.hands: List[Hand] = []
-        self.winData = [0, 0, 0] # [Wins, Losses, Draws]
+        self.handData = [0, 0, 0] # [Wins, Losses, Draws]
     
     def calculateBetSize(self, tableMin, trueCount):
         if self.strategy.isCounting:
@@ -37,6 +37,13 @@ class Player:
     
     def takeBankrollSnapshot(self):
         self.bankrollSnapshots.append(self.bankroll)
+        bankrollDiff = self.bankrollSnapshots[len(self.bankrollSnapshots) - 1] - self.bankrollSnapshots[len(self.bankrollSnapshots) - 2]
+        if bankrollDiff > 0:
+            self.handData[0] += 1
+        elif bankrollDiff < 0:
+            self.handData[1] += 1
+        else:
+            self.handData[2] += 1
     
     def updateBankroll(self, amount):
         self.bankroll = self.bankroll + amount
