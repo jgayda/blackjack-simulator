@@ -65,10 +65,22 @@ Which will run the simulation with the default settings and the pre-listed playe
  
  ### Creating new players
  
- todo
+ To create new players, simply instantiate a new `Player` object in the constructor of the `BlackJackGame` class and add it to its `players` field. The `Player` object takes in the following parameters:
+ * `playerName` - A string representing the name of the player.
+ * `bankroll` - An integer representing the player's starting bankroll. It's recommended that you use the default value so that all players start with an equal bankroll. 
+ * `strategy` - A `Strategy` object. Can be any of them (`BasicStrategy`, `RandomStrategy`, `CasinoStrategy` or another custom strategy).
+ * `betSpread` - A `BetSpread` object that the player uses to determine their bets.
+ * `isVerbose` - Whether or not we wish to print information about how this particular player plays their hands.
  
  ### Creating new strategies
  
- todo
+ To create new strategy, simply add a new strategy class within the `strategy.py` file and extend the `StrategyInterface` class. New strategies must implement the following methods:
+ * `hardTotalOptimalDecision()` - Determines the optimal hard total decision and returns a `GameAction`.
+ * `shouldSplitPair()` - Returns a boolean representing whether or not it's in the player's best interest to split their pair.
+ * `softTotalOptimalDecision()` - Determines the optimal soft total decision and returns a `GameAction`.
+ * `willTakeInsurance()` - Returns a boolean representing whether or not it's in the player's best interest to take insurance.
  
  ### Adding new bet-spreads
+
+To add a new bet-spread, add a new spread class within the `bet.py` file and extend the `BetSpreadInterface` class. New bet spreads must implement the following method:
+* `getBetSpreads()` - Returns the $ amount that the player should bet given the true count and the table minimum bet. 
