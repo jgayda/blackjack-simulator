@@ -49,7 +49,11 @@ You can run the Blackjack simulation by running the command:
 ```
 python blackjack.py
 ```
-Which will run the simulation with the default settings and the pre-listed players within the `blackjack.py` file. To change any game settings within the simulation, use the below flags:
+Which will run the simulation with the default settings and the pre-listed players within the `blackjack.py` file. After the script has executed, a plot will appear that shows each players' bankroll as a function of the number of hands that have been played.
+
+![Blackjack Bankroll Chart](https://github.com/jgayda/blackjack-simulator/blob/main/blackjack_chart.png)
+
+To change any game settings within the simulation, use the below flags:
 * `-s` or `--shoesize` - This determines the amount of decks in the shoe. Default is 6 decks in a shoe.
 * `-b` or `--bankroll` - This determines the dollar amount that each player's bankroll begins the game with. Default is $10,000
 * `-h` or `--hands` - Determines the number of hands to deal in the game. Default is 1000 hands.
