@@ -19,7 +19,7 @@ vprint = print if isVerbose else lambda *a, **k,: None
 @click.option('-s', '--shoesize', default=6, help='An integer representing the amount of decks to use in the shoe. Default is 6 decks.')
 @click.option('-b', '--bankroll', default=10000, help='Determines the amount of dollars that each player begins the game with in their bankroll. Default is $1000.')
 @click.option('-h', '--hands', default=1000, help='Determines the number of hands to deal. Default is 1000.')
-@click.option('-t', '--tablemin', default=10, help='Determines the minimum table bet. Default is 5.')
+@click.option('-t', '--tablemin', default=10, help='Determines the minimum table bet. Default is $10.')
 @click.option('-p', '--penetration', default=0.84, help='Dictates the deck penetration by the dealer. Default is 0.84 which means that the dealer will penetrate 84 percent of the shoe before re-shuffling')
 @click.option('-d', '--dealersettings', default=[17, True, True, True, True], help='Assigns the dealer rules.')
 @click.option('-v', '--verbose', default=False, help='Prints all player, hand, and game information.')
@@ -81,7 +81,7 @@ class GameData:
         # Add the legend
         pos = ax.get_position()
         ax.set_position([pos.x0, pos.y0, pos.width * 0.9, pos.height])
-        ax.legend(loc='center right', bbox_to_anchor=(1.05, 0.5), title="Players")
+        ax.legend(loc='center right', bbox_to_anchor=(1.5, 0.5), title="Players")
         plt.tight_layout()
         plt.show()
 
