@@ -21,7 +21,7 @@ vprint = print if isVerbose else lambda *a, **k,: None
 @click.option('-h', '--hands', default=1000, help='Determines the number of hands to deal. Default is 1000.')
 @click.option('-t', '--tablemin', default=10, help='Determines the minimum table bet. Default is $10.')
 @click.option('-p', '--penetration', default=0.84, help='Dictates the deck penetration by the dealer. Default is 0.84 which means that the dealer will penetrate 84 percent of the shoe before re-shuffling')
-@click.option('-d', '--dealersettings', default=[17, True, True, True, True], help='Assigns the dealer rules.')
+@click.option('-d', '--dealersettings', default="[17, True, True, True, True]", help='Assigns the dealer rules.')
 @click.option('-v', '--verbose', default=False, help='Prints all player, hand, and game information.')
 def main(shoesize, bankroll, hands, tablemin, penetration, dealersettings, verbose):
     print("Running blackjack simulation with variables:")
